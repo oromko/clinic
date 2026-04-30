@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: fmcs-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: fmcs
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - fmcs-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fmcs-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/fmcs
+      JWT_SECRET: fmcs_secret_key_change_in_production_2024
+      JWT_EXPIRE: 7d
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - fmcs-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fmcs-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - fmcs-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  fmcs-network:
+    driver: bridge
